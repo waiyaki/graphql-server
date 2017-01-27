@@ -44,6 +44,13 @@ export const UserType = new GraphQLObjectType({
     friends: {
       type: new GraphQLList(GraphQLID),
       resolve(source) {
+        /* eslint-disable no-underscore-dangle */
+        if (source.__friends) {
+          return source.__friends.map(
+            /* eslint-enable no-underscore-dangle */
+            row => tables.dbIdToNodeId(row.user_id_b, row.__tableName),
+          );
+        }
         return loaders
           .getFriendIdsForUser(source)
           .then(rows => rows.map(

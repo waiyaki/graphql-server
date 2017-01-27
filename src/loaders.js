@@ -28,7 +28,47 @@ export const getFriendIdsForUser = (userSource) => {
 
   return database.getSql(query)
     .then(rows => rows.map((row) => {
+      // eslint-disable-next-line no-param-reassign
       row.__tableName = tables.users.getName();
       return row;
     }));
+};
+
+export const getUserNodeWithFriends = (nodeId) => {
+  const { tableName, dbId } = tables.splitNodeId(nodeId);
+
+  const query = tables
+    .users
+    .select(tables.usersFriends.user_id_b, tables.users.star())
+    .from(
+      tables
+        .users
+        .leftJoin(tables.usersFriends)
+        .on(tables.usersFriends.user_id_a.equals(tables.users.id)),
+    )
+    .where(tables.users.id.equals(dbId))
+    .toQuery();
+
+  return database.getSql(query)
+    .then((rows) => {
+      if (!rows[0]) {
+        return undefined;
+      }
+
+      /* eslint-disable no-underscore-dangle */
+      const __friends = rows.map(({ user_id_b }) => ({
+        user_id_b,
+        __tableName: tables.users.getName(),
+      }));
+
+      const source = {
+        id: rows[0].id,
+        name: rows[0].name,
+        about: rows[0].about,
+        __tableName: tableName,
+        __friends,
+      };
+      /* eslint-enable no-underscore-dangle */
+      return source;
+    });
 };
