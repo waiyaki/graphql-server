@@ -5,5 +5,11 @@ module.exports = {
         "react",
         "jsx-a11y",
         "import"
-    ]
+    ],
+    "rules": {
+        "no-underscore-dangle": [
+            "error",
+            { "allow": ["__tableName"] }
+        ]
+    }
 };

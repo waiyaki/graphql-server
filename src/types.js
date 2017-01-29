@@ -19,9 +19,9 @@ export const NodeInterface = new GraphQLInterfaceType({
   },
   resolveType: (source) => {
     if (source.__tableName === tables.users.getName()) {
-      return UserType;
+      return UserType; // eslint-disable-line no-use-before-define
     }
-    return PostType;
+    return PostType; // eslint-disable-line no-use-before-define
   },
 });
 
@@ -30,7 +30,7 @@ const resolveId = source => tables.dbIdToNodeId(source.id, source.__tableName);
 export const UserType = new GraphQLObjectType({
   name: 'User',
   interfaces: [NodeInterface],
-  fields: {
+  fields: () => ({
     id: {
       type: new GraphQLNonNull(GraphQLID),
       resolve: resolveId,
@@ -42,23 +42,22 @@ export const UserType = new GraphQLObjectType({
       type: new GraphQLNonNull(GraphQLString),
     },
     friends: {
-      type: new GraphQLList(GraphQLID),
+      type: new GraphQLList(UserType),
       resolve(source) {
-        /* eslint-disable no-underscore-dangle */
-        if (source.__friends) {
-          return source.__friends.map(
-            /* eslint-enable no-underscore-dangle */
-            row => tables.dbIdToNodeId(row.user_id_b, row.__tableName),
-          );
-        }
-        return loaders
-          .getFriendIdsForUser(source)
-          .then(rows => rows.map(
-            row => tables.dbIdToNodeId(row.user_id_b, row.__tableName),
-          ));
+        return loaders.getFriendIdsForUser(source)
+          .then((rows) => {
+            const promises = rows.map((row) => {
+              const friendNodeId = tables.dbIdToNodeId(
+                row.user_id_b, row.__tableName,
+              );
+              return loaders.getNodeById(friendNodeId);
+            });
+
+            return Promise.all(promises);
+          });
       },
     },
-  },
+  }),
 });
 
 
